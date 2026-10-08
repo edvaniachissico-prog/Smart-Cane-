@@ -1,0 +1,41 @@
+# 1. Install the conversion library
+!pip install micromlgen
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from micromlgen import port
+
+# 2. LOAD YOUR DATASET
+# Replace this synthetic data with your downloaded IMU dataset (e.g., SisFall CSV).
+# Expected features: [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]
+# Label 0: Normal walking/standing | Label 1: Fall event
+
+print("Generating dataset...")
+# Synthetic Normal Data (Activities of Daily Living)
+normal_data = np.random.normal(loc=1.0, scale=0.5, size=(1000, 6))
+# Synthetic Fall Data (Spikes in acceleration/rotation)
+fall_data = np.random.normal(loc=4.0, scale=2.5, size=(200, 6)) 
+
+X = np.vstack((normal_data, fall_data))
+y = np.concatenate((np.zeros(1000), np.ones(200)))
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 3. TRAIN THE MODEL
+# Random Forest is highly accurate for IMU data and runs in milliseconds on an ESP32
+clf = RandomForestClassifier(n_estimators=15, max_depth=5, random_state=42)
+clf.fit(X_train, y_train)
+
+accuracy = accuracy_score(y_test, clf.predict(X_test))
+print(f"Model Accuracy: {accuracy * 100:.2f}%")
+
+# 4. CONVERT TO C++ FOR ESP32
+c_code = port(clf)
+
+with open('FallDetectionModel.h', 'w') as f:
+    f.write(c_code)
+    
+print("✅ Saved as 'FallDetectionModel.h'. Download this file from Colab's file explorer.")
